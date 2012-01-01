@@ -15,8 +15,12 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
+ifeq ($(BLUETI_ENHANCEMENT), true)
+#Do Nothing
+else
 # 2.3
 LOCAL_SDK_VERSION := 9
+endif
 
 LOCAL_MODULE := com.android.vcard
 LOCAL_SRC_FILES := $(call all-java-files-under, java)

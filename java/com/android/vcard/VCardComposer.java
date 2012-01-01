@@ -52,6 +52,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
+
+import android.os.SystemProperties;// BLUETI_ENHANCEMENT
+
+
+
 /**
  * <p>
  * The class for composing vCard from Contacts information.
@@ -585,7 +591,58 @@ public class VCardComposer {
             return "";
         } else {
             final VCardBuilder builder = new VCardBuilder(mVCardType, mCharset);
-            builder.appendNameProperties(contentValuesListMap.get(StructuredName.CONTENT_ITEM_TYPE))
+
+            if (SystemProperties.BLUETI_ENHANCEMENT) {
+                builder.appendNamePropertiesWithoutPhonetic(contentValuesListMap.get(StructuredName.CONTENT_ITEM_TYPE));
+
+                if((mVCardType & VCardConfig.FLAG_REFRAIN_ANDROID_FIELDS_EXPORT) == 0){
+                    builder.appendPhoneticName(contentValuesListMap.get(StructuredName.CONTENT_ITEM_TYPE));
+                }
+
+                builder.appendPhones(contentValuesListMap.get(Phone.CONTENT_ITEM_TYPE),
+                        mPhoneTranslationCallback);
+
+                if ((mVCardType & VCardConfig.FLAG_REFRAIN_NICKNAME_EXPORT) == 0) {
+                    builder.appendNickNamesOnly(contentValuesListMap.get(Nickname.CONTENT_ITEM_TYPE));
+                }
+
+                if ((mVCardType & VCardConfig.FLAG_REFRAIN_EMAIL_EXPORT) == 0) {
+                    builder.appendEmails(contentValuesListMap.get(Email.CONTENT_ITEM_TYPE));
+                }
+
+                if((mVCardType & VCardConfig.FLAG_REFRAIN_ANDROID_FIELDS_EXPORT) == 0){
+                    builder.appendPostals(contentValuesListMap.get(StructuredPostal.CONTENT_ITEM_TYPE));
+                }
+
+                if ((mVCardType & VCardConfig.FLAG_REFRAIN_ORG_EXPORT) == 0) {
+                    builder.appendOrganizationsWithoutTitle(contentValuesListMap.get(Organization.CONTENT_ITEM_TYPE));
+                }
+
+                if ((mVCardType & VCardConfig.FLAG_REFRAIN_TITLE_EXPORT) == 0) {
+                    builder.appendTitles(contentValuesListMap.get(Organization.CONTENT_ITEM_TYPE));
+                }
+
+                if((mVCardType & VCardConfig.FLAG_REFRAIN_ANDROID_FIELDS_EXPORT) == 0){
+                    builder.appendWebsites(contentValuesListMap.get(Website.CONTENT_ITEM_TYPE));
+                }
+
+                if ((mVCardType & VCardConfig.FLAG_REFRAIN_IMAGE_EXPORT) == 0) {
+                    builder.appendPhotos(contentValuesListMap.get(Photo.CONTENT_ITEM_TYPE));
+                }
+
+                if ((mVCardType & VCardConfig.FLAG_REFRAIN_NOTE_EXPORT) == 0) {
+                    builder.appendNotes(contentValuesListMap.get(Note.CONTENT_ITEM_TYPE));
+                }
+                if((mVCardType & VCardConfig.FLAG_REFRAIN_ANDROID_FIELDS_EXPORT) == 0){
+
+                    builder.appendEvents(contentValuesListMap.get(Event.CONTENT_ITEM_TYPE));
+                    builder.appendIms(contentValuesListMap.get(Im.CONTENT_ITEM_TYPE));
+                    builder.appendSipAddresses(contentValuesListMap.get(SipAddress.CONTENT_ITEM_TYPE));
+                    builder.appendRelation(contentValuesListMap.get(Relation.CONTENT_ITEM_TYPE));
+                }
+
+            } else {
+                builder.appendNameProperties(contentValuesListMap.get(StructuredName.CONTENT_ITEM_TYPE))
                     .appendNickNames(contentValuesListMap.get(Nickname.CONTENT_ITEM_TYPE))
                     .appendPhones(contentValuesListMap.get(Phone.CONTENT_ITEM_TYPE),
                             mPhoneTranslationCallback)
@@ -593,14 +650,16 @@ public class VCardComposer {
                     .appendPostals(contentValuesListMap.get(StructuredPostal.CONTENT_ITEM_TYPE))
                     .appendOrganizations(contentValuesListMap.get(Organization.CONTENT_ITEM_TYPE))
                     .appendWebsites(contentValuesListMap.get(Website.CONTENT_ITEM_TYPE));
-            if ((mVCardType & VCardConfig.FLAG_REFRAIN_IMAGE_EXPORT) == 0) {
-                builder.appendPhotos(contentValuesListMap.get(Photo.CONTENT_ITEM_TYPE));
-            }
-            builder.appendNotes(contentValuesListMap.get(Note.CONTENT_ITEM_TYPE))
+                if ((mVCardType & VCardConfig.FLAG_REFRAIN_IMAGE_EXPORT) == 0) {
+                    builder.appendPhotos(contentValuesListMap.get(Photo.CONTENT_ITEM_TYPE));
+                }
+                builder.appendNotes(contentValuesListMap.get(Note.CONTENT_ITEM_TYPE))
                     .appendEvents(contentValuesListMap.get(Event.CONTENT_ITEM_TYPE))
                     .appendIms(contentValuesListMap.get(Im.CONTENT_ITEM_TYPE))
                     .appendSipAddresses(contentValuesListMap.get(SipAddress.CONTENT_ITEM_TYPE))
                     .appendRelation(contentValuesListMap.get(Relation.CONTENT_ITEM_TYPE));
+            }
+
             return builder.toString();
         }
     }

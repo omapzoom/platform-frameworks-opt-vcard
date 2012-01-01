@@ -245,6 +245,73 @@ public class VCardConfig {
      */
     public static final int FLAG_REFRAIN_IMAGE_EXPORT = 0x00800000;
 
+    /**
+     * <P>
+     * The flag asking exporter to refrain Structured Presentation of Name export.
+     * </P>
+     * @hide will be deleted in the near future.
+     */
+    public static final int FLAG_REFRAIN_N_EXPORT = 0x00400000; // BLUETI_ENHANCEMENT
+
+    /**
+     * <P>
+     * The flag asking exporter to refrain Nickname export.
+     * </P>
+     * @hide will be deleted in the near future.
+     */
+    public static final int FLAG_REFRAIN_NICKNAME_EXPORT = 0x00200000; // BLUETI_ENHANCEMENT
+
+    /**
+     * <P>
+     * The flag asking exporter to refrain Telephone export.
+     * </P>
+     * @hide will be deleted in the near future.
+     */
+    public static final int FLAG_REFRAIN_TEL_EXPORT = 0x00080000; // BLUETI_ENHANCEMENT
+
+    /**
+     * <P>
+     * The flag asking exporter to refrain email export.
+     * </P>
+     * @hide will be deleted in the near future.
+     */
+    public static final int FLAG_REFRAIN_EMAIL_EXPORT = 0x00040000; // BLUETI_ENHANCEMENT
+
+    /**
+     * <P>
+     * The flag asking exporter to refrain Name of Organization export.
+     * </P>
+     * @hide will be deleted in the near future.
+     */
+    public static final int FLAG_REFRAIN_ORG_EXPORT = 0x00020000; // BLUETI_ENHANCEMENT
+
+    /**
+     * <P>
+     * The flag asking exporter to refrain Comments export.
+     * </P>
+     * @hide will be deleted in the near future.
+     */
+    public static final int FLAG_REFRAIN_NOTE_EXPORT = 0x00008000; // BLUETI_ENHANCEMENT
+
+    /**
+     * <P>
+     * The flag asking exporter to refrain Comments export.
+     * </P>
+     * @hide will be deleted in the near future.
+     */
+    public static final int FLAG_REFRAIN_TITLE_EXPORT = 0x00004000; // BLUETI_ENHANCEMENT
+
+    /**
+     * <P>
+     * The flag asking exporter to refrain Comments export.
+     * </P>
+     * @hide will be deleted in the near future.
+     */
+    public static final int FLAG_REFRAIN_ANDROID_FIELDS_EXPORT = 0x00002000; // BLUETI_ENHANCEMENT
+
+
+
+
     //// The followings are VCard types available from importer/exporter. ////
 
     /**

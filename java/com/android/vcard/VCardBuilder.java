@@ -46,6 +46,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+
+import android.os.SystemProperties;// BLUETI_ENHANCEMENT
+
+
 /**
  * <p>
  * The class which lets users create their own vCard String. Typical usage is as follows:
@@ -400,6 +404,198 @@ public class VCardBuilder {
         // We may need X- properties for phonetic names.
         appendPhoneticNameFields(contentValues);
         return this;
+    }
+
+    // BLUETI_ENHANCEMENT
+    public VCardBuilder appendPhoneticName(final List<ContentValues> contentValuesList) {
+        if (SystemProperties.BLUETI_ENHANCEMENT) {
+            final ContentValues contentValues =
+                getPrimaryContentValueWithStructuredName(contentValuesList);
+            appendPhoneticNameFields(contentValues);
+            return this;
+        } else {
+            return null;
+        }
+    }
+
+    // BLUETI_ENHANCEMENT
+    public VCardBuilder appendNamePropertiesWithoutPhonetic(final List<ContentValues> contentValuesList) {
+        if (SystemProperties.BLUETI_ENHANCEMENT) {
+            if (VCardConfig.isVersion40(mVCardType)) {
+                return appendNamePropertiesV40(contentValuesList);
+            }
+            if (contentValuesList == null || contentValuesList.isEmpty()) {
+                if (VCardConfig.isVersion30(mVCardType)) {
+                    // vCard 3.0 requires "N" and "FN" properties.
+                    // vCard 4.0 does NOT require N, but we take care of possible backward
+                    // compatibility issues.
+                    appendLine(VCardConstants.PROPERTY_N, "");
+                    appendLine(VCardConstants.PROPERTY_FN, "");
+                } else if (mIsDoCoMo) {
+                    appendLine(VCardConstants.PROPERTY_N, "");
+                }
+                return this;
+            }
+
+            final ContentValues contentValues =
+                getPrimaryContentValueWithStructuredName(contentValuesList);
+            final String familyName = contentValues.getAsString(StructuredName.FAMILY_NAME);
+            final String middleName = contentValues.getAsString(StructuredName.MIDDLE_NAME);
+            final String givenName = contentValues.getAsString(StructuredName.GIVEN_NAME);
+            final String prefix = contentValues.getAsString(StructuredName.PREFIX);
+            final String suffix = contentValues.getAsString(StructuredName.SUFFIX);
+            final String displayName = contentValues.getAsString(StructuredName.DISPLAY_NAME);
+
+            if (!TextUtils.isEmpty(familyName) || !TextUtils.isEmpty(givenName)) {
+                final boolean reallyAppendCharsetParameterToName =
+                    shouldAppendCharsetParam(familyName, givenName, middleName, prefix, suffix);
+                final boolean reallyUseQuotedPrintableToName =
+                    (!mRefrainsQPToNameProperties &&
+                     !(VCardUtils.containsOnlyNonCrLfPrintableAscii(familyName) &&
+                         VCardUtils.containsOnlyNonCrLfPrintableAscii(givenName) &&
+                         VCardUtils.containsOnlyNonCrLfPrintableAscii(middleName) &&
+                         VCardUtils.containsOnlyNonCrLfPrintableAscii(prefix) &&
+                         VCardUtils.containsOnlyNonCrLfPrintableAscii(suffix)));
+
+                final String formattedName;
+                if (!TextUtils.isEmpty(displayName)) {
+                    formattedName = displayName;
+                } else {
+                    formattedName = VCardUtils.constructNameFromElements(
+                            VCardConfig.getNameOrderType(mVCardType),
+                            familyName, middleName, givenName, prefix, suffix);
+                }
+                final boolean reallyAppendCharsetParameterToFN =
+                    shouldAppendCharsetParam(formattedName);
+                final boolean reallyUseQuotedPrintableToFN =
+                    !mRefrainsQPToNameProperties &&
+                    !VCardUtils.containsOnlyNonCrLfPrintableAscii(formattedName);
+
+                final String encodedFamily;
+                final String encodedGiven;
+                final String encodedMiddle;
+                final String encodedPrefix;
+                final String encodedSuffix;
+                if (reallyUseQuotedPrintableToName) {
+                    encodedFamily = encodeQuotedPrintable(familyName);
+                    encodedGiven = encodeQuotedPrintable(givenName);
+                    encodedMiddle = encodeQuotedPrintable(middleName);
+                    encodedPrefix = encodeQuotedPrintable(prefix);
+                    encodedSuffix = encodeQuotedPrintable(suffix);
+                } else {
+                    encodedFamily = escapeCharacters(familyName);
+                    encodedGiven = escapeCharacters(givenName);
+                    encodedMiddle = escapeCharacters(middleName);
+                    encodedPrefix = escapeCharacters(prefix);
+                    encodedSuffix = escapeCharacters(suffix);
+                }
+
+                final String encodedFormattedname =
+                    (reallyUseQuotedPrintableToFN ?
+                     encodeQuotedPrintable(formattedName) : escapeCharacters(formattedName));
+
+                mBuilder.append(VCardConstants.PROPERTY_N);
+                if (mIsDoCoMo) {
+                    if (reallyAppendCharsetParameterToName) {
+                        mBuilder.append(VCARD_PARAM_SEPARATOR);
+                        mBuilder.append(mVCardCharsetParameter);
+                    }
+                    if (reallyUseQuotedPrintableToName) {
+                        mBuilder.append(VCARD_PARAM_SEPARATOR);
+                        mBuilder.append(VCARD_PARAM_ENCODING_QP);
+                    }
+                    mBuilder.append(VCARD_DATA_SEPARATOR);
+                    // DoCoMo phones require that all the elements in the "family name" field.
+                    mBuilder.append(formattedName);
+                    mBuilder.append(VCARD_ITEM_SEPARATOR);
+                    mBuilder.append(VCARD_ITEM_SEPARATOR);
+                    mBuilder.append(VCARD_ITEM_SEPARATOR);
+                    mBuilder.append(VCARD_ITEM_SEPARATOR);
+                } else {
+                    if (reallyAppendCharsetParameterToName) {
+                        mBuilder.append(VCARD_PARAM_SEPARATOR);
+                        mBuilder.append(mVCardCharsetParameter);
+                    }
+                    if (reallyUseQuotedPrintableToName) {
+                        mBuilder.append(VCARD_PARAM_SEPARATOR);
+                        mBuilder.append(VCARD_PARAM_ENCODING_QP);
+                    }
+                    mBuilder.append(VCARD_DATA_SEPARATOR);
+                    mBuilder.append(encodedFamily);
+                    mBuilder.append(VCARD_ITEM_SEPARATOR);
+                    mBuilder.append(encodedGiven);
+                    mBuilder.append(VCARD_ITEM_SEPARATOR);
+                    mBuilder.append(encodedMiddle);
+                    mBuilder.append(VCARD_ITEM_SEPARATOR);
+                    mBuilder.append(encodedPrefix);
+                    mBuilder.append(VCARD_ITEM_SEPARATOR);
+                    mBuilder.append(encodedSuffix);
+                }
+                mBuilder.append(VCARD_END_OF_LINE);
+
+                // FN property
+                mBuilder.append(VCardConstants.PROPERTY_FN);
+                if (reallyAppendCharsetParameterToFN) {
+                    mBuilder.append(VCARD_PARAM_SEPARATOR);
+                    mBuilder.append(mVCardCharsetParameter);
+                }
+                if (reallyUseQuotedPrintableToFN) {
+                    mBuilder.append(VCARD_PARAM_SEPARATOR);
+                    mBuilder.append(VCARD_PARAM_ENCODING_QP);
+                }
+                mBuilder.append(VCARD_DATA_SEPARATOR);
+                mBuilder.append(encodedFormattedname);
+                mBuilder.append(VCARD_END_OF_LINE);
+            } else if (!TextUtils.isEmpty(displayName)) {
+                final boolean reallyUseQuotedPrintableToDisplayName =
+                    (!mRefrainsQPToNameProperties &&
+                     !VCardUtils.containsOnlyNonCrLfPrintableAscii(displayName));
+                final String encodedDisplayName =
+                    reallyUseQuotedPrintableToDisplayName ?
+                    encodeQuotedPrintable(displayName) :
+                    escapeCharacters(displayName);
+
+                // N
+                mBuilder.append(VCardConstants.PROPERTY_N);
+                if (shouldAppendCharsetParam(displayName)) {
+                    mBuilder.append(VCARD_PARAM_SEPARATOR);
+                    mBuilder.append(mVCardCharsetParameter);
+                }
+                if (reallyUseQuotedPrintableToDisplayName) {
+                    mBuilder.append(VCARD_PARAM_SEPARATOR);
+                    mBuilder.append(VCARD_PARAM_ENCODING_QP);
+                }
+                mBuilder.append(VCARD_DATA_SEPARATOR);
+                mBuilder.append(encodedDisplayName);
+                mBuilder.append(VCARD_ITEM_SEPARATOR);
+                mBuilder.append(VCARD_ITEM_SEPARATOR);
+                mBuilder.append(VCARD_ITEM_SEPARATOR);
+                mBuilder.append(VCARD_ITEM_SEPARATOR);
+                mBuilder.append(VCARD_END_OF_LINE);
+
+                // FN
+                mBuilder.append(VCardConstants.PROPERTY_FN);
+
+                // Note: "CHARSET" param is not allowed in vCard 3.0, but we may add it
+                //       when it would be useful or necessary for external importers,
+                //       assuming the external importer allows this vioration of the spec.
+                if (shouldAppendCharsetParam(displayName)) {
+                    mBuilder.append(VCARD_PARAM_SEPARATOR);
+                    mBuilder.append(mVCardCharsetParameter);
+                }
+                mBuilder.append(VCARD_DATA_SEPARATOR);
+                mBuilder.append(encodedDisplayName);
+                mBuilder.append(VCARD_END_OF_LINE);
+            } else if (VCardConfig.isVersion30(mVCardType)) {
+                appendLine(VCardConstants.PROPERTY_N, "");
+                appendLine(VCardConstants.PROPERTY_FN, "");
+            } else if (mIsDoCoMo) {
+                appendLine(VCardConstants.PROPERTY_N, "");
+            }
+            return this;
+        } else {// BLUETI_ENHANCEMENT
+            return null;
+        }
     }
 
     /**
@@ -792,6 +988,43 @@ public class VCardBuilder {
         }
     }
 
+    // BLUETI_ENHANCEMENT
+    /**
+     * append NICKNAME field only
+     */
+    public VCardBuilder appendNickNamesOnly(final List<ContentValues> contentValuesList) {
+
+        if (SystemProperties.BLUETI_ENHANCEMENT) {
+            if (contentValuesList != null) {
+                for (ContentValues contentValues : contentValuesList) {
+                    String nickname = contentValues.getAsString(Nickname.NAME);
+                    if (nickname  != null) {
+                        nickname  = nickname .trim();
+                    }
+
+                    if (TextUtils.isEmpty(nickname)) {
+                        continue;
+                    }
+
+                    StringBuilder orgBuilder = new StringBuilder();
+                    if (!TextUtils.isEmpty(nickname)) {
+                        orgBuilder.append(nickname);
+                    }
+
+                    final String orgline = orgBuilder.toString();
+                    appendLine(VCardConstants.PROPERTY_NICKNAME , orgline,
+                            !VCardUtils.containsOnlyPrintableAscii(orgline),
+                            (mShouldUseQuotedPrintable &&
+                             !VCardUtils.containsOnlyNonCrLfPrintableAscii(orgline)));
+                }
+            }
+            return this;
+        } else {
+            return null;
+        }
+    }
+
+
     public VCardBuilder appendNickNames(final List<ContentValues> contentValuesList) {
         final boolean useAndroidProperty;
         if (mIsV30OrV40) {   // These specifications have NICKNAME property.
@@ -808,6 +1041,7 @@ public class VCardBuilder {
                 if (TextUtils.isEmpty(nickname)) {
                     continue;
                 }
+
                 if (useAndroidProperty) {
                     appendAndroidSpecificProperty(Nickname.CONTENT_ITEM_TYPE, contentValues);
                 } else {
@@ -1286,6 +1520,62 @@ public class VCardBuilder {
             }
         }
         return this;
+    }
+
+    //BLUETI_ENHANCEMENT
+    public VCardBuilder appendTitles(final List<ContentValues> contentValuesList) {
+        if (SystemProperties.BLUETI_ENHANCEMENT) {
+            if (contentValuesList != null) {
+                for (ContentValues contentValues : contentValuesList) {
+                    String title = contentValues.getAsString(Organization.TITLE);
+                    if (title != null) {
+                        title = title.trim();
+                    }
+                    StringBuilder orgBuilder = new StringBuilder();
+                    if (!TextUtils.isEmpty(title)) {
+                        orgBuilder.append(title);
+                    }
+                    final String orgline = orgBuilder.toString();
+                    appendLine(VCardConstants.PROPERTY_TITLE, orgline,
+                            !VCardUtils.containsOnlyPrintableAscii(orgline),
+                            (mShouldUseQuotedPrintable &&
+                             !VCardUtils.containsOnlyNonCrLfPrintableAscii(orgline)));
+                }
+            }
+            return this;
+        } else {
+            return null;
+        }
+
+    }
+
+    //BLUETI_ENHANCEMENT
+    public VCardBuilder appendOrganizationsWithoutTitle(final List<ContentValues> contentValuesList) {
+        if (SystemProperties.BLUETI_ENHANCEMENT) {
+            if (contentValuesList != null) {
+                for (ContentValues contentValues : contentValuesList) {
+                    String company = contentValues.getAsString(Organization.COMPANY);
+                    if (company != null) {
+                        company = company.trim();
+                    }
+
+
+                    StringBuilder orgBuilder = new StringBuilder();
+                    if (!TextUtils.isEmpty(company)) {
+                        orgBuilder.append(company);
+                    }
+
+                    final String orgline = orgBuilder.toString();
+                    appendLine(VCardConstants.PROPERTY_ORG, orgline,
+                            !VCardUtils.containsOnlyPrintableAscii(orgline),
+                            (mShouldUseQuotedPrintable &&
+                             !VCardUtils.containsOnlyNonCrLfPrintableAscii(orgline)));
+                }
+            }
+            return this;
+        } else {
+            return null;
+        }
     }
 
     public VCardBuilder appendOrganizations(final List<ContentValues> contentValuesList) {
