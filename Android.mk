@@ -19,7 +19,7 @@ ifeq ($(BLUETI_ENHANCEMENT), true)
 #Do Nothing
 else
 # 2.3
-LOCAL_SDK_VERSION := 9
+# Do Nothing now, workaround for build, WAS: LOCAL_SDK_VERSION := 9
 endif
 
 LOCAL_MODULE := com.android.vcard
