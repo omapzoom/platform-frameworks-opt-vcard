@@ -409,9 +409,11 @@ public class VCardBuilder {
     // BLUETI_ENHANCEMENT
     public VCardBuilder appendPhoneticName(final List<ContentValues> contentValuesList) {
         if (SystemProperties.BLUETI_ENHANCEMENT) {
-            final ContentValues contentValues =
-                getPrimaryContentValueWithStructuredName(contentValuesList);
-            appendPhoneticNameFields(contentValues);
+            if (contentValuesList != null) {
+                final ContentValues contentValues =
+                    getPrimaryContentValueWithStructuredName(contentValuesList);
+                appendPhoneticNameFields(contentValues);
+            }
             return this;
         } else {
             return null;
@@ -609,6 +611,11 @@ public class VCardBuilder {
         }
 
         if (contentValuesList == null || contentValuesList.isEmpty()) {
+           if (SystemProperties.BLUETI_ENHANCEMENT) {
+                if (VCardConfig.isVersion21(mVCardType)) {
+                    appendLine(VCardConstants.PROPERTY_N, "");
+                }
+            }
             if (VCardConfig.isVersion30(mVCardType)) {
                 // vCard 3.0 requires "N" and "FN" properties.
                 // vCard 4.0 does NOT require N, but we take care of possible backward
